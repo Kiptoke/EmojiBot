@@ -6,8 +6,25 @@ from nextcord.ext import commands
 
 SERVER_ID = 639700575339937792
 
+# WolverineSoft Specific Variables
+CHANNEL_ID = 590591000708251648
+BOT_TESTING = True  # TODO: change to false when not testing
+
+WHITELIST = [
+    1085740714853404723,    # EmojiSoft
+    653662170638450716,     # Yarger
+    276919942249447424,     # Cameron
+    724645504738131969,     # Daniel
+    549001303490166794,     # Jacob
+    480163568658939904,     # Kaavya
+    261645583306063876,     # Nicholas
+    479626539005247515,     # Nikhil
+    275729760359940096      # Sai
+]
+
 intents = nextcord.Intents.default()
 intents.message_content = True
+intents.members = True
 bot = commands.Bot(command_prefix="$", intents=intents)
 
 @bot.event
@@ -17,37 +34,68 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     msg = message.content
-    print(f'Initial Message:\n {msg}')
+    author = message.author
+
+    # Bot Testing
+    if BOT_TESTING and message.channel.id != CHANNEL_ID:
+        return
     
-    # BOT BEHAVIOR QUESTIONS
-    #   Remove photos?
-    #   Remove gifs?
-    #   Remove stickers?
-    #   Remove mentions?
+    # Whitelist
+    if BOT_TESTING == False and (author.id in WHITELIST):
+        return
+    
+    print(f'------ Initial Message by {author}: ------\n {msg}')
     
     # Custom Emoji Handler
-    custom_emojis = re.findall(r'<:\w*:\d*>', message.content)
-    print(f'Custom Discord Emojis:\n {custom_emojis}')
+    custom_emojis = re.findall(r'<a?:\w*:\d*>', message.content)
+    print(f'Custom Discord Emojis: {custom_emojis}')
     for emote in custom_emojis:
         msg = msg.replace(emote,'')
-    print(f'Custom Emojis Removed:\n {msg}')
     
     # Unicode Emoji Handler
     text = emoji.demojize(msg)
     text = re.findall(r'(:[^:]*:)', text)
     unicode_emojis = [emoji.emojize(x) for x in text]
-    print(f'Unicode Emojis:\n {unicode_emojis}')
+    print(f'Unicode Emojis: {unicode_emojis}')
     for emote in unicode_emojis:
         msg = msg.replace(emote,'')
-    print(f'All Emojis Removed:\n {msg}')
     
-    # Check if message still there
-    msg = msg.strip()
+    # Message Verdict
     print("Final Message Verdict:")
-    if msg == "":
-        print("Keep")
-    else:
-        print("Delete")
+    keep_msg = True
     
-
+    if msg.strip() != "":   # No Text
+        print("Removed for text or GIF")
+        keep_msg = False
+        
+    if len(message.attachments) != 0:   #  No images
+        print("Removed for images")
+        keep_msg = False
+        
+    if len(message.stickers) != 0:  # No stickers
+        print("Removed for stickers")
+        keep_msg = False
+        
+    if keep_msg:
+        print("Message kept!")
+    else:
+        await delete_message(message)
+    
+async def delete_message(message):
+    DELETION_DELAY = 0.0
+    try:
+        await message.delete(delay = DELETION_DELAY) 
+        await message.author.send("You can only send emoji!")
+    except nextcord.Forbidden as error:
+        print("You don't have permissions to delete messages!")
+        print(error)
+    except nextcord.NotFound as error:
+        print("Message already deleted!")
+        print(error)
+    except nextcord.HTTPException as error:
+        print("OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo! The code monkeys at our headquarters are working VEWY HAWD to fix this!")
+        print(error)
+    except:
+        print("wait what the fuck did you do") 
+    
 bot.run(bot_secrets.TOKEN)
