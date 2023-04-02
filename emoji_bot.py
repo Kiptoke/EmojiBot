@@ -8,18 +8,10 @@ SERVER_ID = 639700575339937792
 
 # WolverineSoft Specific Variables
 CHANNEL_ID = 590591000708251648
-BOT_TESTING = True  # TODO: change to false when not testing
+BOT_TESTING = False  
 
 WHITELIST = [
     1085740714853404723,    # EmojiSoft
-    653662170638450716,     # Yarger
-    276919942249447424,     # Cameron
-    724645504738131969,     # Daniel
-    549001303490166794,     # Jacob
-    480163568658939904,     # Kaavya
-    261645583306063876,     # Nicholas
-    479626539005247515,     # Nikhil
-    275729760359940096      # Sai
 ]
 
 intents = nextcord.Intents.default()
@@ -80,6 +72,56 @@ async def on_message(message):
         print("Message kept!")
     else:
         await delete_message(message)
+    
+@bot.event
+async def on_message_edit(before, after):
+    msg = after.content
+    author = after.author
+
+    # Bot Testing
+    if BOT_TESTING and after.channel.id != CHANNEL_ID:
+        return
+    
+    # Whitelist
+    if BOT_TESTING == False and (author.id in WHITELIST):
+        return
+    
+    print(f'------ Initial Message by {author}: ------\n {msg}')
+    
+    # Custom Emoji Handler
+    custom_emojis = re.findall(r'<a?:\w*:\d*>', after.content)
+    print(f'Custom Discord Emojis: {custom_emojis}')
+    for emote in custom_emojis:
+        msg = msg.replace(emote,'')
+    
+    # Unicode Emoji Handler
+    text = emoji.demojize(msg)
+    text = re.findall(r'(:[^:]*:)', text)
+    unicode_emojis = [emoji.emojize(x) for x in text]
+    print(f'Unicode Emojis: {unicode_emojis}')
+    for emote in unicode_emojis:
+        msg = msg.replace(emote,'')
+    
+    # Message Verdict
+    print("Final Message Verdict:")
+    keep_msg = True
+    
+    if msg.strip() != "":   # No Text
+        print("Removed for text or GIF")
+        keep_msg = False
+        
+    if len(after.attachments) != 0:   #  No images
+        print("Removed for images")
+        keep_msg = False
+        
+    if len(after.stickers) != 0:  # No stickers
+        print("Removed for stickers")
+        keep_msg = False
+        
+    if keep_msg:
+        print("Message kept!")
+    else:
+        await delete_message(after)
     
 async def delete_message(message):
     DELETION_DELAY = 0.0
